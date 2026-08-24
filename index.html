@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Blog with Analytics</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+    img, video { width: 100%; height: auto; margin-top: 15px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+<h1>Welcome to My Blog</h1>
+<p>This is a simple blog post showing how text, images, and videos can be tracked seamlessly using Google Sheets.</p>
+
+<img src="https://picsum.photos" alt="Blog Image">
+
+<video id="blogVideo" controls>
+  <source src="https://googleapis.com" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+<script>
+  // 1. Configuration
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwa9-u4XTc3PVN2i90GYMU9R2Jc3V301rE5G-1joO0HLfSWzBmqxkIGs1NmkcflSRI3/exec";
+
+  // 2. State Tracking
+  let userName = localStorage.getItem('blog_user_name');
+  let startTime = Date.now();
+  let videoClicks = 0;
+
+  // 3. Prompt for Name if missing
+  if (!userName) {
+    userName = prompt("Please enter your name to read the blog:") || "Anonymous";
+    localStorage.setItem('blog_user_name', userName);
+  }
+
+  // 4. Track Video Clicks
+  const video = document.getElementById('blogVideo');
+  video.addEventListener('play', () => {
+    videoClicks++;
+  });
+
+  // 5. Send Data to Google Sheets
+  function sendAnalytics() {
+    let activeTimeSeconds = Math.round((Date.now() - startTime) / 1000);
+
+    let payload = {
+      name: userName,
+      activeTime: activeTimeSeconds,
+      videoClicks: videoClicks
+    };
+
+    // Use sendBeacon for reliable delivery during page unload
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(SCRIPT_URL, JSON.stringify(payload));
+    } else {
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        mode: 'no-cors'
+      });
+    }
+  }
+
+  // Send data when user leaves or closes the tab
+  window.addEventListener('beforeunload', sendAnalytics);
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') sendAnalytics();
+  });
+</script>
+</body>
+</html>

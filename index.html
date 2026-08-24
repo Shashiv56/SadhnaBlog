@@ -11,7 +11,7 @@
 </head>
 <body>
 
-<h1>Welcome to My Blog</h1>
+<h1>Hare Krishna! Welcome to Morning Sadhna Inspiration Blog</h1>
 <p>This is a simple blog post on importance of Morning Sadhana with beatiful posters and inspiring video content to enhance our Sadhna.</p>
 
 <img src="https://picsum.photos" alt="Blog Image">
@@ -26,15 +26,18 @@
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwa9-u4XTc3PVN2i90GYMU9R2Jc3V301rE5G-1joO0HLfSWzBmqxkIGs1NmkcflSRI3/exec";
 
   // 2. State Tracking
-  let userName = localStorage.getItem('blog_user_name');
-  let startTime = Date.now();
-  let videoClicks = 0;
+let userName = sessionStorage.getItem('blog_user_name');
+let startTime = Date.now();
+let videoClicks = 0;
 
   // 3. Prompt for Name if missing
-  if (!userName) {
-    userName = prompt("Please enter your name to read the blog:") || "Anonymous";
-    localStorage.setItem('blog_user_name', userName);
-  }
+while (!userName || userName.trim() === "" || userName === "null") {
+    userName = prompt("Please enter your name to read the blog:");
+    if (userName) {
+        userName = userName.trim();
+    }
+}
+sessionStorage.setItem('blog_user_name', userName);
 
   // 4. Track Video Clicks
   const video = document.getElementById('blogVideo');

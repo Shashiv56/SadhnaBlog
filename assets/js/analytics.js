@@ -1,5 +1,5 @@
 // 1. Configuration (Make sure this matches your Apps Script Web App URL)
-const SCRIPT_URL = "https://google.com";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwa9-u4XTc3PVN2i90GYMU9R2Jc3V301rE5G-1joO0HLfSWzBmqxkIGs1NmkcflSRI3/exec";
 
 // 2. State tracking
 let userName = sessionStorage.getItem('blog_user_name');

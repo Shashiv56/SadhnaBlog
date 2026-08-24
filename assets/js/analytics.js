@@ -80,12 +80,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // 5. Send data to Google Sheets
+let lastSentAtMs = null;
+
 function sendAnalytics() {
   captureVisibleSegment();
   let activeTimeSeconds = Math.round(accumulatedActiveMs / 1000);
 
   // Skip sending data if the user didn't actually spend at least 1 second
   if (activeTimeSeconds < 1) return;
+
+  // A refresh or tab close fires both 'visibilitychange' (hidden) and
+  // 'beforeunload' back to back — without this guard that's two rows
+  // in the sheet for one page-leave. A real, separate hide (minutes apart)
+  // still gets its own row.
+  const now = Date.now();
+  if (lastSentAtMs !== null && now - lastSentAtMs < 1000) return;
+  lastSentAtMs = now;
 
   let payload = {
     name: userName,

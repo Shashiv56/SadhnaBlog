@@ -1,10 +1,19 @@
 // 1. Configuration (Make sure this matches your Apps Script Web App URL)
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwa9-u4XTc3PVN2i90GYMU9R2Jc3V301rE5G-1joO0HLfSWzBmqxkIGs1NmkcflSRI3/exec";
 
-// 2. State tracking
+// 2. State tracking — only count time while the tab is actually visible,
+// so a long idle/background stretch doesn't inflate "time spent" on refresh or close.
 let userName = sessionStorage.getItem('blog_user_name');
-let startTime = Date.now();
+let visibleSinceMs = document.visibilityState === 'visible' ? Date.now() : null;
+let accumulatedActiveMs = 0;
 let videoClicks = 0;
+
+function captureVisibleSegment() {
+  if (visibleSinceMs !== null) {
+    accumulatedActiveMs += Date.now() - visibleSinceMs;
+    visibleSinceMs = null;
+  }
+}
 
 // 3. Ask for a name via a styled modal instead of a blocking native prompt
 function showNameGate() {
@@ -46,18 +55,34 @@ document.addEventListener('DOMContentLoaded', () => {
     showNameGate();
   }
 
-  // 4. Track video clicks (runs automatically if a video exists on the page)
+  // 4. Track video plays via the YouTube IFrame Player API.
+  // A plain <iframe> never fires a 'play' event — that only exists on
+  // native <video>/<audio> elements — so we have to talk to the embedded
+  // YouTube player itself (enabled by ?enablejsapi=1 on its src).
   const video = document.getElementById('blogVideo');
   if (video) {
-    video.addEventListener('play', () => {
-      videoClicks++;
-    });
+    const apiTag = document.createElement('script');
+    apiTag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(apiTag);
+
+    window.onYouTubeIframeAPIReady = () => {
+      new YT.Player('blogVideo', {
+        events: {
+          onStateChange: (event) => {
+            if (event.data === YT.PlayerState.PLAYING) {
+              videoClicks++;
+            }
+          }
+        }
+      });
+    };
   }
 });
 
 // 5. Send data to Google Sheets
 function sendAnalytics() {
-  let activeTimeSeconds = Math.round((Date.now() - startTime) / 1000);
+  captureVisibleSegment();
+  let activeTimeSeconds = Math.round(accumulatedActiveMs / 1000);
 
   // Skip sending data if the user didn't actually spend at least 1 second
   if (activeTimeSeconds < 1) return;
@@ -79,8 +104,15 @@ function sendAnalytics() {
   }
 }
 
+// Pause the clock when the tab is hidden, resume when it becomes visible again,
+// and flush what's accumulated so far so a backgrounded tab reports accurately.
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    sendAnalytics();
+  } else {
+    visibleSinceMs = Date.now();
+  }
+});
+
 // Send data when user leaves or closes the tab
 window.addEventListener('beforeunload', sendAnalytics);
-window.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') sendAnalytics();
-});
